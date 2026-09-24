@@ -83,6 +83,7 @@ JSONL log of raw frames to `logs/`.
 | `Notebook/HVC3500_REMOTE_INTERFACE.md` | Protocol, command surface, safety behaviour, open questions |
 | `Notebook/FORMSLAB_TVAC_CONTEXT.md` | How this fits the `formsLabCLI` architecture |
 | `Notebook/TVAC_ETHERNET_PROGRESS.md` | Dated progress log and commissioning checklist |
+| `Notebook/2026-09-24_SESSION_SUMMARY.md` | One-page summary of the 2026-09-24 session: config confirmed, setpoint semantics, first autonomous pump-down |
 | `HVC 3500 Manual.pdf`, `UNIV. OF ILLINOIS ... Rev A.pdf` | Source manuals |
 
 ## Write safety
