@@ -1,0 +1,21 @@
+# Per-bench configuration for the LACO TVAC (HVC-3500).
+# Copy to bench/tvac_bench.toml and fill in values READ FROM THE HMI
+# (UniApps -> Network -> Ethernet -> IP Config / CPU TCP). The addresses below
+# are the manual's screenshot examples, not this chamber's.
+
+[connection]
+host = "172.16.21.75"      # CPU IP (not the Panel IP)
+port = 20256               # CPU TCP listening port from the HMI
+timeout_s = 2.0
+
+[units]                    # not queryable over ASCII; must match Advanced Settings on the HMI
+pressure = "Torr"
+temperature = "C"
+
+[zones]                    # logical name -> HVC zone number (1..3)
+shroud = 1
+platen = 2
+
+[sensors]                  # logical name -> temperature input T0..T20
+shroud_rtd = 0
+platen_rtd = 1

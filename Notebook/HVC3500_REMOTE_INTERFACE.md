@@ -56,6 +56,27 @@ ASCII: carriage return is decimal 13 and hexadecimal `0x0D`. Treat `\r`
 (`0x0D`) as the likely framing byte, but verify this with a read-only query on
 the installed controller before relying on it.
 
+## Observed on the installed chamber (2026-09-17)
+
+- CPU IP 10.1.2.121, ASCII socket **TCP port 1**; Panel IP 10.1.2.120.
+- Terminator is CR (`0x0D`); LF gets `ER`. The manual's `0x13` is a typo.
+- Persistent sessions work; so does one connection per command. ~105 ms/reply.
+- Reply formatting differs from the tables below: `Manual` not `MANUAL`,
+  keys sometimes padded (`Z 1: 193`), values often have a leading space,
+  `?TC` returns free text with warnings appended. `hvc3500/protocol.py`
+  normalises all of these.
+- Seven zones, not three. Zone 1 = platen (PID sensor T2), zone 2 = shroud
+  (PID sensor T3), zones 3-7 monitor-only.
+- **Two setpoint registers per zone.** `!Zn:value` writes the *commanded*
+  setpoint: it persists, appears in the HMI's Manual Heat field within a
+  second, and is what the PLC controls to once `!ZSn` activates the zone.
+  `?Zn` returns the *effective* setpoint, which is slaved to the zone's
+  control sensor while thermal control is off (bumpless tracking) and equals
+  the commanded value once active. Verified 2026-09-24 by writing 17.5 and
+  watching the HMI change while `?Z1` kept reporting the sensor. Software
+  must therefore verify a zone write by the controller's echo (`Z n: value`),
+  not by `?Zn` - `HVC3500Client.set_zone_setpoint` does this.
+
 ## Documented command surface
 
 Every command is terminated by carriage return. `#` characters in the manual
@@ -242,6 +263,12 @@ configuration.
 
 `formsLabCLI` should use ASCII/TCP for automation. VNC is useful for setup and
 observation, while FTP is useful for retrieving controller-native logs.
+
+Observed 2026-09-17: the installed VNC server (10.1.2.120:5900, RFB 3.8,
+VNC-auth) accepts the section 5.1.3 credential but delivers a **view-only**
+session - screen updates arrive, pointer input is ignored. Control permission
+is set on the touchscreen (UniApps -> Network -> VNC Server). This does not
+affect automation: ASCII/TCP on 10.1.2.121:1 accepts commands regardless.
 
 ## Facts to collect at the chamber
 

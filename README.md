@@ -1,118 +1,107 @@
-# TVAC Ethernet Remote-Control Readme
+# TVAC Ethernet Remote Control
 
-Last reviewed: 2026-09-15
+Last reviewed: 2026-09-24
 
-This folder documents how to connect the University of Illinois LACO thermal
-vacuum chamber to a computer for remote monitoring and, after commissioning,
-remote control.
+Tools and notes for connecting the University of Illinois LACO thermal vacuum
+chamber (VC/HVC-3500 controller) to a computer over Ethernet for monitoring
+and, after commissioning, control.
 
-## Result of the review
+## Status
 
-The HVC-3500 controller supports an ASCII command interface over Ethernet/TCP.
-The correct physical connection is the controller enclosure RJ45 port labeled
-**Ethernet**. That connection exposes two logical controller addresses:
+- **Program: done and bench-tested.** The `hvc3500` package implements the
+  documented ASCII/TCP interface with a safety model matched to the chamber
+  (no retries, verified setpoints, gated actions, read-first toggles). 40
+  tests pass against a protocol simulator; every CLI command was exercised.
+- **Live chamber: read path proven (2026-09-17).** CPU IP **10.1.2.121**,
+  ASCII socket **port 1**, CR-terminated; `?MC` answers, all 49 documented
+  reads answer, `probe`/`lifecycle`/`snapshot` pass. Panel IP is 10.1.2.120
+  (VNC 5900, FTP 21). The PC reaches it via `Ethernet 3` with a secondary
+  address 10.1.2.200/24 (`tools\find_hvc.ps1 -AddAddress`).
+- **Config confirmed (2026-09-24):** Torr, degrees C, zone 1 = platen (sensor
+  T2), zone 2 = shroud (sensor T3). Write path proven (`!Z1` acknowledged);
+  note that idle zones re-copy their sensor into the setpoint every scan, so a
+  setpoint only persists after `!ZSn` activates the zone.
+- **formsLabCLI:** `run laco` loads `rScripts/rTVAC_LACO.py`, which publishes
+  the chamber to the CAST block `hvc` and accepts setpoint/control requests
+  (see that repo's `rScripts/README.md`). Not yet run on the bench.
+- See `Notebook/TVAC_ETHERNET_PROGRESS.md` for the dated log and raw frames.
+
+## Connection model
+
+The controller enclosure RJ45 port labelled **Ethernet** exposes two addresses:
 
 | Service | Address | Purpose |
 | --- | --- | --- |
-| ASCII over TCP | CPU IP | Programmatic monitoring and control |
+| ASCII over TCP | CPU IP | Programmatic monitoring and control (this package) |
 | VNC | Panel IP | Human HMI view and operation |
-| FTP, port 21 | Panel IP | Controller logs and screenshots |
+| FTP, port 21 | Panel IP | Controller logs (`DT/`) and screenshots (`Media/`) |
 
-The CPU IP, Panel IP, and ASCII TCP port shown in a manual or screenshot must
-not be assumed to be the values for the installed chamber. The actual values
-must be read from the HMI or supplied by the installer.
+Read the real addresses and the **CPU TCP** port from the HMI: *UniApps ->
+Network -> Ethernet*. The manual's `172.16.21.74/.75` are screenshot examples.
 
-## Files in this folder
+## Quick start
 
-- [HVC3500_REMOTE_INTERFACE.md](Notebook/HVC3500_REMOTE_INTERFACE.md) records the
-  protocol, command surface, safety behavior, and known uncertainties.
-- [FORMSLAB_TVAC_CONTEXT.md](Notebook/FORMSLAB_TVAC_CONTEXT.md) records how the chamber
-  should fit into the existing `formsLabCLI` architecture.
-- [TVAC_ETHERNET_PROGRESS.md](Notebook/TVAC_ETHERNET_PROGRESS.md) is the dated progress
-  log and commissioning checklist.
-- [TVAC_ETHERNET_CONNECTION.ipynb](Notebook/TVAC_ETHERNET_CONNECTION.ipynb) explains the
-  process and contains a read-only Python TCP probe.
+```powershell
+# from the repo root, with any Python 3.11+ (the formsLabCLI venv works)
+python -m pytest tests                         # protocol + simulator tests
+python -m hvc3500 simulate --port 20256        # fake controller (separate window)
+python -m hvc3500 probe --host 127.0.0.1 --port 20256
 
-## Process used
-
-### 1. Inspect the source material
-
-The review covered both PDFs in the `tvac` folder, the existing notes in
-`Notebook`, and the empty `tmp` folder. The HVC manual supplies the Ethernet,
-VNC, FTP, ASCII framing, command, recipe, and safety information. The
-chamber-specific manual identifies the installed system as the LACO thermal
-vacuum chamber and describes the shroud/platen functions, but it does not
-provide the installed CPU address, TCP port, or complete sensor numbering.
-
-### 2. Isolate the network
-
-Use a dedicated lab Ethernet adapter or isolated VLAN. Do not expose the
-controller directly to the public internet. Do not change controller network
-settings until the existing values and any device dependencies are recorded.
-
-### 3. Record the installed configuration
-
-At the HMI, record:
-
-- Panel IP, CPU IP, subnet mask, and gateway.
-- Unitronics `Network -> Ethernet -> CPU TCP` listening port.
-- Installed HVC application/software revision.
-- Pressure and temperature units.
-- Shroud/platen mapping to HVC zones.
-- Physical sensor mapping to `T0` through `T20`.
-- Whether `Enable ASCII in Recipe` is enabled.
-
-The HMI values are the source of truth for this installation. Do not use
-example addresses from the manual.
-
-### 4. Prove the read-only path
-
-The first test is:
-
-```text
-TCP connect to CPU_IP:CPU_TCP_PORT
-send: ?MC followed by carriage return
+# on the real chamber (PC needs 10.1.2.x on Ethernet 3; see tools\find_hvc.ps1)
+python -m hvc3500 probe     --host 10.1.2.121 --port 1
+python -m hvc3500 lifecycle --host 10.1.2.121 --port 1
+python -m hvc3500 snapshot  --config bench\tvac_bench.toml
+python -m hvc3500 watch     --config bench\tvac_bench.toml --interval 5
+python -m hvc3500 set-zone  --config bench\tvac_bench.toml 1 19.3   # verified setpoint write
+python tools\vnc_shot.py 10.1.2.120 --password <HMI VNC password> --out hmi.png
 ```
 
-Use `\\r` (`0x0D`) as the initial carriage return. The manual notes contain a
-conflicting `0x13` notation, so the actual reply framing must be recorded.
-The expected result is a mode response such as `AUTO` or `MANUAL`; `ER` proves
-the service answered but the command or installed configuration differs.
+To watch the touchscreen from a PC, use a VNC viewer against the Panel IP
+(`vncviewer64.exe 10.1.2.120:5900`, portable TigerVNC works). As installed,
+the session is **view-only**; control is enabled on the touchscreen under
+UniApps -> Network -> VNC Server. VNC is for humans; software control goes
+over the ASCII/TCP link.
 
-After `?MC` succeeds, query only read commands such as `?TC`, `?VP`, and `?ES`.
-Record raw replies, timestamps, endpoint, connection lifecycle, timeout, and
-polling behavior in the progress log.
+`probe` is the first discriminating test from the notes: connect, `?MC<CR>`,
+then `?TC`, `?VP`, `?ES`, then an unknown command that must return `ER`. Its
+exit code and messages tell you which layer failed. All commands append a
+JSONL log of raw frames to `logs/`.
 
-### 5. Commission control gradually
+## Layout
 
-Before any write, compare read-only values with the HMI and verify units and
-zone mapping. Then add only one idempotent setpoint write under operator
-supervision, poll it, and verify the resulting controller state.
+| Path | Contents |
+| --- | --- |
+| `hvc3500/protocol.py` | Framing, parsing, fault decoding (pure, unit-tested) |
+| `hvc3500/client.py` | TCP client, typed reads, guarded writes, transaction log |
+| `hvc3500/simulator.py` | Fake HVC-3500 for bench-less testing |
+| `hvc3500/cli.py` | `probe`, `lifecycle`, `raw`, `snapshot`, `watch`, `set-zone`, `set-vacuum`, `device`, `discover`, `simulate` |
+| `bench/tvac_bench.example.toml` | Endpoint, units, zone and sensor mapping template |
+| `tests/` | pytest suite |
+| `tools/find_hvc.ps1` | Elevated helper to find the controller's subnet from ARP traffic |
+| `Notebook/TVAC_ETHERNET_CONNECTION.ipynb` | Runnable commissioning walkthrough |
+| `Notebook/HVC3500_REMOTE_INTERFACE.md` | Protocol, command surface, safety behaviour, open questions |
+| `Notebook/FORMSLAB_TVAC_CONTEXT.md` | How this fits the `formsLabCLI` architecture |
+| `Notebook/TVAC_ETHERNET_PROGRESS.md` | Dated progress log and commissioning checklist |
+| `HVC 3500 Manual.pdf`, `UNIV. OF ILLINOIS ... Rev A.pdf` | Source manuals |
 
-Do not blindly retry commands that may change state. `!CS` can start or
-continue a held recipe step. Valve and pump commands are toggles with delayed
-physical effect. Read state first, send at most one toggle, wait, and verify.
+## Write safety
 
-The HVC PLC remains authoritative for interlocks, vacuum sequencing, thermal
-limits, faults, and recovery. Remote software should request high-level
-operations and setpoints rather than reproduce or bypass PLC safety logic.
+| Class | Commands | Client behaviour |
+| --- | --- | --- |
+| Setpoint (idempotent) | `!VS !VR !VD !VH !TR !Zn !ZRn !RTn` | Written, then read back and compared |
+| Action (state-changing) | `!CS !CA !CR !RS !RO !VA !FA !PS !NA !ZSn !ZOn` | `confirm=True` required; never retried |
+| Toggle (valve/pump) | `!OR !OV !OF !O4 !OG !OP !OT` | `confirm=True`; read first, at most one toggle, wait, verify |
 
-## Current status
+The PLC stays the authority for interlocks, sequencing, thermal limits and
+recovery. Do not expose VNC, FTP or the ASCII port to the public internet, and
+do not change the controller's IP settings without recording them and checking
+with LACO (remote I/O and the high-vacuum enclosure depend on them).
 
-The documented network path is identified, but live communication has not yet
-been proven because the installed CPU IP, TCP port, units, and zone/sensor
-mapping have not been recorded. The next milestone is a read-only snapshot
-from the installed controller. Only after that snapshot matches the HMI should
-the `formsLabCLI` transport and controlled writes be implemented.
+## Commissioning order
 
-## Source manuals
-
-- `HVC 3500 Manual.pdf` - controller manual, revision A16, including remote
-  connection information in section 5 and communications commands in appendix
-  9.1.
-- `UNIV. OF ILLINOIS, FCT3048ELSSSE-1P35531, FEB 2026, Rev A.pdf` -
-  chamber-specific system manual.
-
-Keep confirmed manual facts, observed chamber configuration, tested protocol
-behavior, and proposed software design explicitly separated as this work
-continues.
+1. Isolate the network (dedicated adapter or VLAN).
+2. Record Panel IP, CPU IP, mask, gateway, CPU TCP port, software revision,
+   units, zone and sensor mapping, and the *Enable ASCII in Recipe* setting.
+3. `probe`, then `lifecycle`, then `snapshot` compared against the HMI.
+4. One supervised idempotent write (`set-zone` to the current value).
+5. Only inside a supervised ASCII-recipe test: actions and toggles.
