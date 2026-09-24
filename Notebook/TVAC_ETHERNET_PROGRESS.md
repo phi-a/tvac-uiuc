@@ -87,7 +87,8 @@ pre-flight, actuation, monitoring, and safe shutdown with no human input.
 
 Operator returned Z1 to Off; `?TC` -> `Recovery/Ready,Stand By,Ready`,
 `?ES` N, `?VP` 82.3 Torr, Z1 commanded 19.9 C (= ambient), all zones and rate
-control off, all valves closed, pumps off. Chamber left as found.
+control off, all valves closed, pumps off. After the 08:07 pump-down test the
+chamber was left sealed at 1.9 Torr with pumps off (found at 82 Torr).
 
 What is proven today: read path, sensor map, units, software revision,
 setpoint writes (commanded register), `?TC` as a thermal-control indicator,

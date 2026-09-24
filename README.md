@@ -54,6 +54,7 @@ python -m hvc3500 snapshot  --config bench\tvac_bench.toml
 python -m hvc3500 watch     --config bench\tvac_bench.toml --interval 5
 python -m hvc3500 set-zone  --config bench\tvac_bench.toml 1 19.3   # verified setpoint write
 python tools\vnc_shot.py 10.1.2.120 --password <HMI VNC password> --out hmi.png
+python tools\pumpdown_test.py --target-torr 2 --max-min 4     # supervised rough pump-down (passed 2026-09-24)
 ```
 
 To watch the touchscreen from a PC, use a VNC viewer against the Panel IP
