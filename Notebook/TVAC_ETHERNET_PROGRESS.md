@@ -52,6 +52,37 @@ sample, to 0.1 C, including a simultaneous +0.6 C step. Conclusion:
   `!ZO1` to deactivate.
 - The ASCII write path is proven.
 
+### Autonomous rough pump-down test (08:07-08:11) - PASSED
+
+`tools/pumpdown_test.py --target-torr 2 --max-min 4`, operator present and
+listening, Manual mode, raw frames in `logs/*_pumpdown.jsonl`:
+
+```text
+08:06:59  pre-flight OK: Manual, ES N, all closed/off, 82.14 Torr
+08:06:59  !OP  vacuum pump ON      verified ON at +4 s
+08:07:19  !OR  rough valve OPEN    verified OPEN at +24 s (after 15 s pump settle)
+          82.1 -> 39.7 Torr at +72 s, 9.9 at +162 s, 2.0 at +262 s
+08:11:20  target reached
+08:11:24  !OR  rough valve CLOSED  verified
+08:11:27  !OP  vacuum pump OFF     verified (PLC allowed it: rough closed)
+final     1.92 Torr, ES N, OR OV OF O4 OG OP OT all closed/off
+```
+
+- Every toggle followed read-first / single-send / verify; the PLC honoured
+  the evac interlock (pump running >= 10 s before evac) and the pump-stop
+  interlock (rough closed first). No warnings or faults at any point.
+- Pump-down was a clean exponential, roughly one decade per ~100 s from 80 to
+  8 Torr, slowing below 5 Torr as expected for a roughing pump on a large
+  volume.
+- `?PR` (pressure rate) read 0.000 throughout despite ~1 Torr/s of change:
+  the register only updates during a cycle, not in Manual mode. `?TC` stayed
+  `Recovery/Ready,Stand By,Ready`.
+- Turbo, gate, foreline, vent and fill were never commanded. Chamber left at
+  1.9 Torr, sealed, pumps off.
+
+This is the first end-to-end remote **control** of the chamber from software:
+pre-flight, actuation, monitoring, and safe shutdown with no human input.
+
 ### Resting state and next steps (08:05)
 
 Operator returned Z1 to Off; `?TC` -> `Recovery/Ready,Stand By,Ready`,
