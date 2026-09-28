@@ -362,6 +362,7 @@ Connect the LACO thermal-vacuum chamber to a computer over Ethernet so it can be
 
 - `HVC 3500 Manual.pdf` is present at the TVAC folder root.
 - `UNIV. OF ILLINOIS, FCT3048ELSSSE-1P35531, FEB 2026, Rev A.pdf` is present at the TVAC folder root.
+  (Both manuals moved to `docs/` on 2026-09-28.)
 - `Notebook/` contained the existing TVAC integration notes.
 - `tmp/` is empty.
 

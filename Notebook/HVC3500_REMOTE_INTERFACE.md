@@ -295,7 +295,7 @@ Record these before enabling any write command:
 
 ## Source locations
 
-- `HVC 3500 Manual.pdf`: sections 4.3.4-4.3.8, 5, 6.4, 7, and appendix 9.1;
+- `docs/HVC 3500 Manual.pdf`: sections 4.3.4-4.3.8, 5, 6.4, 7, and appendix 9.1;
   especially pages 16-22, 29-34, 36-42, and 44-53.
 - Chamber-specific system manual: equipment and safety descriptions on pages
   7-9, 16-18, 23-24, and 27-28.

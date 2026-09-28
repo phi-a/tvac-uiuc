@@ -1,0 +1,55 @@
+# LACO TVAC (FCT3048ELSSSE-1P35531) - HVC-3500 bench profile.
+# Values confirmed on the installed controller and its HMI, 2026-09-17/24.
+
+[connection]
+host = "10.1.2.121"    # CPU IP (Unitronics MAC 00-0D-22-82-08-9C). Panel IP is 10.1.2.120 (VNC/FTP).
+port = 1               # ASCII/TCP socket found by port scan; ?MC answers here. Not the documented default.
+timeout_s = 3.0
+poll_interval_s = 5.0  # reply latency ~105 ms; 5 s polling leaves ample headroom
+
+[units]                # from HMI Adv Settings (not queryable over ASCII)
+pressure = "Torr"      # Adv Settings -> Vacuum -> Chamber Pressure Unit
+temperature = "C"      # Adv Settings -> Temperature Control -> Temp Unit
+time = "s"             # Chamber Time Unit: sec
+
+[zones]                # logical name -> HVC zone number, from Adv Settings -> Temperature Control
+platen = 1             # PID Cntrl "Cntrl P"; SP max 200 C, source limit 215 C
+shroud = 2             # PID Cntrl "Cntrl S"; SP max 120 C, source limit 125 C
+# zones 3..7 exist in this firmware as monitor-only (t2..t6); not controlled
+
+[limits]               # from HMI; the PLC enforces these, listed for software-side sanity checks
+platen_setpoint_max_c = 200.0
+platen_setpoint_min_c = -180.0
+shroud_setpoint_max_c = 120.0
+shroud_setpoint_min_c = -180.0
+max_vent_temp_c = 60.0
+min_vent_temp_c = 10.0
+max_heater_pressure_torr = 700.0
+high_vac_crossover_torr = 0.010
+
+[sensors]              # logical name -> temperature input T0..T20 (confirmed 2026-09-24 against the HMI Manual screen)
+platen_ctrl = 2        # HMI "Cntrl P" - PID feedback for zone 1
+shroud_ctrl = 3        # HMI "Cntrl S" - PID feedback for zone 2
+t2 = 4                 # HMI "t2" - zone 3 monitor sensor
+ot1_ptn = 0            # platen over-temperature channel (Sensor Labels)
+ot2_shd = 1            # shroud over-temperature channel
+T5 = 5                 # T5-T13 answer live (~19-20 C); names not shown on the HMI, likely t3-t6 + spares
+T6 = 6
+T7 = 7
+T8 = 8
+T9 = 9
+T10 = 10
+T11 = 11
+T12 = 12
+T13 = 13
+T14 = 14               # reads ~3 C warmer than the chamber sensors
+T15 = 15               # reads ~3 C warmer than the chamber sensors
+# T16/T17 read -1 (unused), T18-T20 read 0
+
+[hmi]                  # state of HMI settings that affect remote operation
+enable_ascii_in_recipe = false   # Adv Settings -> Vacuum; must be true to hand a full cycle to software
+vnc_control = false              # VNC session is view-only as configured
+
+[software]            # HMI Info screen, 2026-09-24
+project = "3500_101809_Rev8.06_10_1P35531.00"
+version = "1.41.213"

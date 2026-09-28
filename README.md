@@ -1,6 +1,6 @@
 # TVAC Ethernet Remote Control
 
-Last reviewed: 2026-09-24
+Last reviewed: 2026-09-28
 
 Tools and notes for connecting the University of Illinois LACO thermal vacuum
 chamber (VC/HVC-3500 controller) to a computer over Ethernet for monitoring
@@ -18,9 +18,12 @@ and, after commissioning, control.
   (VNC 5900, FTP 21). The PC reaches it via `Ethernet 3` with a secondary
   address 10.1.2.200/24 (`tools\find_hvc.ps1 -AddAddress`).
 - **Config confirmed (2026-09-24):** Torr, degrees C, zone 1 = platen (sensor
-  T2), zone 2 = shroud (sensor T3). Write path proven (`!Z1` acknowledged);
-  note that idle zones re-copy their sensor into the setpoint every scan, so a
-  setpoint only persists after `!ZSn` activates the zone.
+  T2), zone 2 = shroud (sensor T3). Setpoint writes persist (`!Zn` sets the
+  commanded value shown on the HMI; `?Zn` reads the effective value, which
+  tracks the sensor while the zone is idle). `!ZSn` does not start manual
+  thermal control on this firmware; the recipe path is next.
+- **First autonomous control (2026-09-24):** rough pump-down 82 -> 1.95 Torr
+  in 4 min 22 s with `tools/pumpdown_test.py`, no faults.
 - **formsLabCLI:** `run laco` loads `rScripts/rTVAC_LACO.py`, which publishes
   the chamber to the CAST block `hvc` and accepts setpoint/control requests
   (see that repo's `rScripts/README.md`). Not yet run on the bench.
@@ -84,7 +87,9 @@ JSONL log of raw frames to `logs/`.
 | `Notebook/FORMSLAB_TVAC_CONTEXT.md` | How this fits the `formsLabCLI` architecture |
 | `Notebook/TVAC_ETHERNET_PROGRESS.md` | Dated progress log and commissioning checklist |
 | `Notebook/2026-09-24_SESSION_SUMMARY.md` | One-page summary of the 2026-09-24 session: config confirmed, setpoint semantics, first autonomous pump-down |
-| `HVC 3500 Manual.pdf`, `UNIV. OF ILLINOIS ... Rev A.pdf` | Source manuals |
+| `docs/HVC 3500 Manual.pdf` | HVC-3500 controller manual (rev A16) |
+| `docs/UNIV. OF ILLINOIS ... Rev A.pdf` | Chamber-specific system manual (FCT3048ELSSSE-1P35531) |
+| `bench/tvac_bench.toml` | Confirmed live bench profile for this chamber |
 
 ## Write safety
 

@@ -3,6 +3,8 @@ __pycache__/
 .pytest_cache/
 logs/*.jsonl
 logs/*.csv
-bench/tvac_bench.toml
 bench/sim_bench.toml
 tmp/
+
+# local Claude Code permissions (per-user)
+.claude/settings.local.json
