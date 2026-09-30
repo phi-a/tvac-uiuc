@@ -266,8 +266,11 @@ observation, while FTP is useful for retrieving controller-native logs.
 
 Observed 2026-09-17: the installed VNC server (10.1.2.120:5900, RFB 3.8,
 VNC-auth) accepts the section 5.1.3 credential but delivers a **view-only**
-session - screen updates arrive, pointer input is ignored. Control permission
-is set on the touchscreen (UniApps -> Network -> VNC Server). This does not
+session - screen updates arrive, pointer input is ignored. The touchscreen's
+UniApps -> Network -> VNC Server screens have no view-only or password
+setting (checked 2026-09-29); the restriction is most likely a view-only
+password in LACO's UniLogic application, with a separate full-control
+password. The manual (section 5.1.2) says VNC control works. This does not
 affect automation: ASCII/TCP on 10.1.2.121:1 accepts commands regardless.
 
 ## Facts to collect at the chamber

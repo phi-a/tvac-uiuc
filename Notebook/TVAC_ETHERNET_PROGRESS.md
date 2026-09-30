@@ -1,5 +1,30 @@
 # TVAC Ethernet Remote-Control Progress
 
+## 2026-09-29 - VNC view-only is not a touchscreen setting
+
+Operator at the touchscreen opened UniApps -> Network, captured over VNC with
+`tools/vnc_shot.py` (no input sent):
+
+- **VNC Server -> General**: Server Resolution 800x480 (US5/7/C, USP-070),
+  With Cursor off, Set 'Touch bit' on, App Settings off, plus Disconnect and
+  Apply buttons. No password or view-only option.
+- **VNC Server -> Connectivity**: list of connected clients only (one row,
+  10.1.2.200, i.e. the TigerVNC viewer on this PC).
+- **VNC Client**: the panel's outbound viewer, unconfigured (255.255.255.255,
+  no password). Unrelated to incoming control.
+
+Discriminating test: the operator clicked a UniApps tab in the TigerVNC window
+on the PC; the panel did not respond. UniApps needs no HVC login, so the
+earlier doubt (the Manual icon ignores Operator-level users, manual p. 29)
+does not explain it: **pointer input is dropped server-side.** The manual
+(section 5.1.2) says VNC control works out of the box, and does not document
+any VNC password. Working hypothesis: the section 5.1.3 credential is a
+view-only VNC password set in LACO's UniLogic application, with a separate
+full-control password. Next: ask LACO for that password (or whether view-only
+is intentional). Do not upload or download the UniLogic project to find out.
+Correction to the 2026-09-17/24 notes below: control is *not* enabled under
+UniApps -> Network -> VNC Server.
+
 ## 2026-09-24 - Link restored, air restored, config confirmed
 
 - 06:54 `probe` failed at TCP connect: `Ethernet 3` was physically

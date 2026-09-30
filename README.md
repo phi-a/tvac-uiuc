@@ -62,9 +62,10 @@ python tools\pumpdown_test.py --target-torr 2 --max-min 4     # supervised rough
 
 To watch the touchscreen from a PC, use a VNC viewer against the Panel IP
 (`vncviewer64.exe 10.1.2.120:5900`, portable TigerVNC works). As installed,
-the session is **view-only**; control is enabled on the touchscreen under
-UniApps -> Network -> VNC Server. VNC is for humans; software control goes
-over the ASCII/TCP link.
+the session is **view-only**. UniApps -> Network -> VNC Server has no setting
+for this (checked 2026-09-29); it is most likely a separate full-control VNC
+password in LACO's controller application - ask LACO. VNC is for humans;
+software control goes over the ASCII/TCP link.
 
 `probe` is the first discriminating test from the notes: connect, `?MC<CR>`,
 then `?TC`, `?VP`, `?ES`, then an unknown command that must return `ER`. Its
