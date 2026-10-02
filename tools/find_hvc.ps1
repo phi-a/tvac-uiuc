@@ -87,5 +87,5 @@ if ($senders.Count -eq 0) {
 if ($AddAddress -ne "") {
     Write-Host "Adding temporary address $AddAddress/$PrefixLength to '$Adapter' (remove later with Remove-NetIPAddress)"
     New-NetIPAddress -InterfaceAlias $Adapter -IPAddress $AddAddress -PrefixLength $PrefixLength -ErrorAction Stop | Out-Null
-    Write-Host "Done. Now run:  python -m hvc3500 discover --subnet <first three octets> --port <CPU TCP port>"
+    Write-Host "Done. Now run:  python -m formslab.devices.hvc3500 discover --subnet <first three octets> --port <CPU TCP port>"
 }

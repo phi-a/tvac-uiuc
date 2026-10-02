@@ -8,26 +8,21 @@ and, after commissioning, control.
 
 ## Status
 
-- **Program: done and bench-tested.** The `hvc3500` package implements the
-  documented ASCII/TCP interface with a safety model matched to the chamber
-  (no retries, verified setpoints, gated actions, read-first toggles). 40
-  tests pass against a protocol simulator; every CLI command was exercised.
-- **Live chamber: read path proven (2026-09-17).** CPU IP **10.1.2.121**,
-  ASCII socket **port 1**, CR-terminated; `?MC` answers, all 49 documented
-  reads answer, `probe`/`lifecycle`/`snapshot` pass. Panel IP is 10.1.2.120
-  (VNC 5900, FTP 21). The PC reaches it via `Ethernet 3` with a secondary
-  address 10.1.2.200/24 (`tools\find_hvc.ps1 -AddAddress`).
-- **Config confirmed (2026-09-24):** Torr, degrees C, zone 1 = platen (sensor
-  T2), zone 2 = shroud (sensor T3). Setpoint writes persist (`!Zn` sets the
-  commanded value shown on the HMI; `?Zn` reads the effective value, which
-  tracks the sensor while the zone is idle). `!ZSn` does not start manual
-  thermal control on this firmware; the recipe path is next.
-- **First autonomous control (2026-09-24):** rough pump-down 82 -> 1.95 Torr
-  in 4 min 22 s with `tools/pumpdown_test.py`, no faults.
-- **formsLabCLI:** `run laco` loads `rScripts/rTVAC_LACO.py`, which publishes
-  the chamber to the CAST block `hvc` and accepts setpoint/control requests
-  (see that repo's `rScripts/README.md`). Not yet run on the bench.
-- See `Notebook/TVAC_ETHERNET_PROGRESS.md` for the dated log and raw frames.
+**The HVC-3500 driver, its command-line tool, simulator, tests and protocol
+notes now live in formsLabCLI** (https://github.com/phi-a/formsLabCLI):
+`src/formslab/devices/hvc3500/`, `docs/HVC3500.md`. That is the one maintained
+copy; this repo's `hvc3500/` package was removed (2026-10-02), and its history
+keeps the commissioning versions.
+
+This repo is the commissioning record: dated notes (`Notebook/`), raw frame
+logs (`logs/`), the manuals (`docs/`), the confirmed bench profile as found
+(`bench/tvac_bench.toml`, superseded by formsLabCLI's `tvac_bench.json`), and
+HMI helpers (`tools/`).
+
+Milestones: read path proven 2026-09-17 (CPU 10.1.2.121, ASCII port 1);
+configuration confirmed 2026-09-24; first autonomous rough pump-down
+2026-09-24 (82 -> 1.95 Torr); remote vent and pump-down from formsLabCLI
+2026-10-01. See `Notebook/TVAC_ETHERNET_PROGRESS.md`.
 
 ## Connection model
 
@@ -44,53 +39,36 @@ Network -> Ethernet*. The manual's `172.16.21.74/.75` are screenshot examples.
 
 ## Quick start
 
-```powershell
-# from the repo root, with any Python 3.11+ (the formsLabCLI venv works)
-python -m pytest tests                         # protocol + simulator tests
-python -m hvc3500 simulate --port 20256        # fake controller (separate window)
-python -m hvc3500 probe --host 127.0.0.1 --port 20256
+From a formsLabCLI checkout's venv (the PC needs 10.1.2.x on Ethernet 3; see
+`tools\find_hvc.ps1`):
 
-# on the real chamber (PC needs 10.1.2.x on Ethernet 3; see tools\find_hvc.ps1)
-python -m hvc3500 probe     --host 10.1.2.121 --port 1
-python -m hvc3500 lifecycle --host 10.1.2.121 --port 1
-python -m hvc3500 snapshot  --config bench\tvac_bench.toml
-python -m hvc3500 watch     --config bench\tvac_bench.toml --interval 5
-python -m hvc3500 set-zone  --config bench\tvac_bench.toml 1 19.3   # verified setpoint write
+```powershell
+python -m formslab.devices.hvc3500 simulate --port 20256      # fake controller (separate window)
+python -m formslab.devices.hvc3500 probe --host 127.0.0.1 --port 20256
+python -m formslab.devices.hvc3500 probe                      # the real chamber, from the bench profile
+python -m formslab.devices.hvc3500 snapshot
+python -m formslab.devices.hvc3500 watch --interval 5
 python tools\vnc_shot.py 10.1.2.120 --password <HMI VNC password> --out hmi.png
-python tools\pumpdown_test.py --target-torr 2 --max-min 4     # supervised rough pump-down (passed 2026-09-24)
 ```
 
-To watch the touchscreen from a PC, use a VNC viewer against the Panel IP
-(`vncviewer64.exe 10.1.2.120:5900`, portable TigerVNC works). As installed,
-the session is **view-only**. UniApps -> Network -> VNC Server has no setting
-for this (checked 2026-09-29); it is most likely a separate full-control VNC
-password in LACO's controller application - ask LACO. VNC is for humans;
-software control goes over the ASCII/TCP link.
-
-`probe` is the first discriminating test from the notes: connect, `?MC<CR>`,
-then `?TC`, `?VP`, `?ES`, then an unknown command that must return `ER`. Its
-exit code and messages tell you which layer failed. All commands append a
-JSONL log of raw frames to `logs/`.
+For operation use the formsLabCLI console: `run tvac`, then the cast tab
+(`hvc ...`), or the `laco_pumpdown` / `laco_vent` plans.
 
 ## Layout
 
 | Path | Contents |
 | --- | --- |
-| `hvc3500/protocol.py` | Framing, parsing, fault decoding (pure, unit-tested) |
-| `hvc3500/client.py` | TCP client, typed reads, guarded writes, transaction log |
-| `hvc3500/simulator.py` | Fake HVC-3500 for bench-less testing |
-| `hvc3500/cli.py` | `probe`, `lifecycle`, `raw`, `snapshot`, `watch`, `set-zone`, `set-vacuum`, `device`, `discover`, `simulate` |
 | `bench/tvac_bench.example.toml` | Endpoint, units, zone and sensor mapping template |
-| `tests/` | pytest suite |
 | `tools/find_hvc.ps1` | Elevated helper to find the controller's subnet from ARP traffic |
 | `Notebook/TVAC_ETHERNET_CONNECTION.ipynb` | Runnable commissioning walkthrough |
-| `Notebook/HVC3500_REMOTE_INTERFACE.md` | Protocol, command surface, safety behaviour, open questions |
+| `Notebook/HVC3500_REMOTE_INTERFACE.md` | Pointer: the protocol notes live in formsLabCLI `docs/HVC3500.md` |
 | `Notebook/FORMSLAB_TVAC_CONTEXT.md` | How this fits the `formsLabCLI` architecture |
 | `Notebook/TVAC_ETHERNET_PROGRESS.md` | Dated progress log and commissioning checklist |
 | `Notebook/2026-09-24_SESSION_SUMMARY.md` | One-page summary of the 2026-09-24 session: config confirmed, setpoint semantics, first autonomous pump-down |
 | `docs/HVC 3500 Manual.pdf` | HVC-3500 controller manual (rev A16) |
 | `docs/UNIV. OF ILLINOIS ... Rev A.pdf` | Chamber-specific system manual (FCT3048ELSSSE-1P35531) |
-| `bench/tvac_bench.toml` | Confirmed live bench profile for this chamber |
+| `bench/tvac_bench.toml` | The bench profile as confirmed in commissioning (operational copy: formsLabCLI `tvac_bench.json`) |
+| `tools/pumpdown_test.py` | The first supervised pump-down (2026-09-24); uses formsLabCLI's driver |
 
 ## Write safety
 

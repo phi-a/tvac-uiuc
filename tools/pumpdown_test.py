@@ -21,8 +21,8 @@ import sys
 import time
 import tomllib
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from hvc3500 import HVC3500Client, ProtocolError  # noqa: E402
+# The driver's one copy is formsLabCLI's (pip install -e <formsLabCLI checkout>).
+from formslab.devices.hvc3500 import HVC3500Client, ProtocolError
 
 
 def main() -> int:

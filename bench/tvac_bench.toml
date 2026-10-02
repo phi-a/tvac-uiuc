@@ -1,4 +1,7 @@
 # LACO TVAC (FCT3048ELSSSE-1P35531) - HVC-3500 bench profile.
+# COMMISSIONING RECORD (2026-09). The operational profile is formsLabCLI's
+# tvac_bench.json ($FORMSLAB_CONFIG_DIR, seeded from src/formslab/defaults/);
+# change that one. Only tools/pumpdown_test.py still reads this file.
 # Values confirmed on the installed controller and its HMI, 2026-09-17/24.
 
 [connection]
